@@ -538,7 +538,10 @@ func applyDiffLayer(ctx context.Context, name string, baseImg ocispec.Image, sn 
 		parent = identity.ChainID(baseImg.RootFS.DiffIDs).String()
 	)
 
-	mount, err := sn.Prepare(ctx, key, parent)
+	labels := map[string]string{
+		"containerd.io/snapshot/type": "image",
+	}
+	mount, err := sn.Prepare(ctx, key, parent, snapshots.WithLabels(labels))
 	if err != nil {
 		return err
 	}
