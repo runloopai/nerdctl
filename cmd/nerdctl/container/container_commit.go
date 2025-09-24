@@ -42,7 +42,7 @@ func CommitCommand() *cobra.Command {
 	cmd.Flags().StringP("message", "m", "", "Commit message")
 	cmd.Flags().StringArrayP("change", "c", nil, "Apply Dockerfile instruction to the created image (supported directives: [CMD, ENTRYPOINT])")
 	cmd.Flags().BoolP("pause", "p", true, "Pause container during commit")
-	cmd.Flags().StringP("compression", "", "gzip", "commit compression algorithm (zstd or gzip)")
+	cmd.Flags().StringP("compression", "", "gzip", "commit compression algorithm (zstd, gzip, or uncompressed)")
 	cmd.Flags().String("format", "docker", "Format of the committed image (docker or oci)")
 	cmd.Flags().Bool("estargz", false, "Convert the committed layer to eStargz for lazy pulling")
 	cmd.Flags().Int("estargz-compression-level", 9, "eStargz compression level (1-9)")
@@ -81,8 +81,8 @@ func commitOptions(cmd *cobra.Command) (types.ContainerCommitOptions, error) {
 	if err != nil {
 		return types.ContainerCommitOptions{}, err
 	}
-	if com != string(types.Zstd) && com != string(types.Gzip) {
-		return types.ContainerCommitOptions{}, errors.New("--compression param only supports zstd or gzip")
+	if com != string(types.Zstd) && com != string(types.Gzip) && com != string(types.Uncompressed) {
+		return types.ContainerCommitOptions{}, errors.New("--compression param only supports zstd, gzip, or uncompressed")
 	}
 
 	format, err := cmd.Flags().GetString("format")
