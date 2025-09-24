@@ -411,8 +411,9 @@ type ContainerCommitOptions struct {
 type CompressionType string
 
 const (
-	Zstd CompressionType = "zstd"
-	Gzip CompressionType = "gzip"
+	Zstd         CompressionType = "zstd"
+	Gzip         CompressionType = "gzip"
+	Uncompressed CompressionType = "uncompressed"
 )
 
 type ImageFormat string

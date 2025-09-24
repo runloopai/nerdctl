@@ -394,19 +394,12 @@ func createDiff(ctx context.Context, name string, sn snapshots.Snapshotter, cs c
 		case types.Zstd:
 			diffOpts = append(diffOpts, diff.WithMediaType(ocispec.MediaTypeImageLayerZstd))
 			mediaType = ocispec.MediaTypeImageLayerZstd
+		case types.Uncompressed:
+			diffOpts = append(diffOpts, diff.WithMediaType(ocispec.MediaTypeImageLayer))
+			mediaType = ocispec.MediaTypeImageLayer
 		default:
 			diffOpts = append(diffOpts, diff.WithMediaType(ocispec.MediaTypeImageLayerGzip))
 			mediaType = ocispec.MediaTypeImageLayerGzip
-		}
-	case types.ImageFormatDocker:
-		// Use Docker Schema2 media types for compatibility
-		switch compression {
-		case types.Zstd:
-			diffOpts = append(diffOpts, diff.WithMediaType(ocispec.MediaTypeImageLayerZstd))
-			mediaType = images.MediaTypeDockerSchema2LayerZstd
-		default:
-			diffOpts = append(diffOpts, diff.WithMediaType(ocispec.MediaTypeImageLayerGzip))
-			mediaType = images.MediaTypeDockerSchema2LayerGzip
 		}
 	default:
 		// Default to Docker Schema2 media types for compatibility
@@ -430,14 +423,17 @@ func createDiff(ctx context.Context, name string, sn snapshots.Snapshotter, cs c
 		return ocispec.Descriptor{}, digest.Digest(""), err
 	}
 
-	diffIDStr, ok := info.Labels["containerd.io/uncompressed"]
-	if !ok {
-		return ocispec.Descriptor{}, digest.Digest(""), fmt.Errorf("invalid differ response with no diffID")
-	}
+	diffID := newDesc.Digest
+	if compression != types.Uncompressed {
+		diffIDStr, ok := info.Labels["containerd.io/uncompressed"]
+		if !ok {
+			return ocispec.Descriptor{}, digest.Digest(""), fmt.Errorf("invalid differ response with no diffID")
+		}
 
-	diffID, err := digest.Parse(diffIDStr)
-	if err != nil {
-		return ocispec.Descriptor{}, digest.Digest(""), err
+		diffID, err = digest.Parse(diffIDStr)
+		if err != nil {
+			return ocispec.Descriptor{}, digest.Digest(""), err
+		}
 	}
 
 	// Convert to eStargz if requested
@@ -522,10 +518,16 @@ func createDiff(ctx context.Context, name string, sn snapshots.Snapshotter, cs c
 		}
 	}
 
+	var annotations map[string]string
+	if opts.Format == types.ImageFormatOCI {
+		annotations = newDesc.Annotations
+	}
+
 	return ocispec.Descriptor{
-		MediaType: mediaType,
-		Digest:    newDesc.Digest,
-		Size:      info.Size,
+		MediaType:   mediaType,
+		Digest:      newDesc.Digest,
+		Size:        info.Size,
+		Annotations: annotations,
 	}, diffID, nil
 }
 
